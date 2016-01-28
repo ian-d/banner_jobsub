@@ -1,0 +1,108 @@
+#! /usr/bin/env ruby
+# First line _must_ be a shebang for your Ruby interpreter
+
+require 'banner_jobsub'
+require 'net/smtp'
+require 'erb'
+require 'ostruct'
+
+# gyrschd is a bit more complicated example that finds all the primary instructors
+# for a given term, then emails them their assigned sections from an ERB template.
+# Some comments are removed from code already introduced in gyrruby
+# be careful running this in a real environment
+
+# This is a terrible way to send email, btw. Use something like Pony for real use.
+# Or if you're going to send a _lot_ of email, an asynchornous worker system
+# like resque
+def send_email(to:, body:, opts: {})
+  opts[:server]      ||= 'smtp.myschool.edu'
+  opts[:from]        ||= 'banner@myschool.edu'
+  opts[:from_alias]  ||= 'Banner Jobsub'
+  opts[:subject]     ||= "Section List"
+  opts[:body]        ||= body
+
+  msg = <<END_OF_MESSAGE
+From: #{opts[:from_alias]} <#{opts[:from]}>
+To: <#{to}>
+Subject: #{opts[:subject]}
+
+#{opts[:body]}
+END_OF_MESSAGE
+
+  Net::SMTP.start(opts[:server]) do |smtp|
+    smtp.send_message msg, opts[:from], to
+  end
+end
+
+@ban_env = BannerJobsub::Base.new(name: 'GYRSCHD', params: [:term_code])
+
+# a common pattern here is to move long strings (like SQL) into DATA (everything past __END__)
+# then evaluate it at run-time to bring it into scope. this keeps the actual logic
+# of the program a lot more readable.
+eval DATA.read
+
+# instead of running one large query and managing our control flow row by result row,
+# we're going to do two simpler queries and build a simple data structure
+
+@instructors = {} # A hash to hold the instructors, key will be pidm
+cur = @ban_env.conn.parse(@sql_get_instructors)
+cur.exec(@ban_env.params[:term_code])
+while (row = cur.fetch_hash) do
+  r = row.each_with_object({}) { |(k, v), m| m[k.downcase.to_sym] = v } #convert upcase column name to symbols
+  @instructors[r[:pidm]] = r
+  @instructors[r[:pidm]]['sections'] = []
+end
+cur.close
+
+# now find all the sections and push into the instructor's sections Array
+cur = @ban_env.conn.parse(@sql_get_sections)
+cur.exec(@ban_env.params[:term_code])
+while (row = cur.fetch_hash) do
+  r = row.each_with_object({}) { |(k, v), m| m[k.downcase.to_sym] = v }
+  @instructors[r[:pidm]]['sections'] << r
+end
+cur.close
+
+# We're going to assume our template is in the DATA_HOME
+@template = ERB.new(File.read("#{ENV['DATA_HOME']}/gyrschd.erb"), nil, '-')
+@instructors.each do |pidm, record|
+  temp_s = OpenStruct.new(record)
+  body = @template.result(temp_s.instance_eval {binding})
+
+  # Uncomment the following line w/ caution
+  #send_email(to: temp_s.email_address, body: body)
+
+  # DEBUG
+  @ban_env.log.puts "Would have sent this to #{temp_s.email_address}:\n #{body}\n"
+end
+
+__END__
+@sql_get_instructors = <<-SQL_END
+select distinct spriden_pidm pidm,
+        spriden_id id,
+        spriden_last_name last_name,
+        spriden_first_name first_name,
+        goremal_email_address email_address,
+        sirasgn_term_code term_code
+    from sirasgn
+    join spriden on sirasgn_pidm = spriden_pidm
+    join goremal on spriden_pidm = goremal_pidm
+    where sirasgn_term_code = :1
+        and goremal_emal_code = 'CAMP'
+        and goremal_status_ind = 'A'
+        and spriden_change_ind is null
+        order by spriden_pidm
+SQL_END
+
+@sql_get_sections = <<-SQL_END
+select sirasgn_pidm pidm, ssbsect_subj_code subj_code, ssbsect_crse_numb crse_numb, ssbsect_crn crn, scbcrse_title title
+    from ssbsect
+    join scbcrse on scbcrse_subj_code = ssbsect_subj_code and scbcrse_crse_numb = ssbsect_crse_numb
+    join sirasgn on ssbsect_term_code = sirasgn_term_code and ssbsect_crn = sirasgn_crn
+    where ssbsect_term_code = :1
+        and scbcrse_eff_term = (select max(scbcrse_eff_term)
+                                from scbcrse i
+                                where i.scbcrse_subj_code = ssbsect_subj_code
+                                    and i.scbcrse_crse_numb = ssbsect_crse_numb)
+    order by ssbsect_subj_code asc, ssbsect_crse_numb asc
+SQL_END

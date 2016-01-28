@@ -1,0 +1,8 @@
+<%= first_name %> <%= last_name %>,
+  Below is the list of sections for which you are the primary instructor for term <%= term_code %>.
+
+<% for section in sections -%>
+      <%= section[:subj_code] %>-<%= section[:crse_numb] %>-<%= section[:crn] %> : <%= section[:title] %>
+<% end -%>
+
+Good luck!

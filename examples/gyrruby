@@ -1,0 +1,64 @@
+#! /usr/bin/env ruby
+# First line _must_ be a shebang for your Ruby interpreter
+
+require 'banner_jobsub'
+include FormatR
+
+# gyrruby is contrived example that prints some basic information on people
+# who have birthdays between the start date and end date.
+
+# BannerJobsub::Base has two required parameters:
+# name: The job name as defined in Banner, must be upcase.
+# params: An *Array* of parameter names to map to parameter values submitted
+#         with the job. The order of the names corresponds to the order of the
+#         parameter definition in Banner.
+@ban_env = BannerJobsub::Base.new(name: 'GYRRUBY', params: [:start_date, :end_date])
+
+# ruby-oci8 supports named parameter binding, but :1 and :2 would also work.
+@sql = %Q[
+  select *
+       from spbpers
+       join spriden on spbpers_pidm = spriden_pidm
+       where spbpers_birth_date between :start_date and :end_date
+       and spriden_change_ind is null
+       order by spriden_last_name asc
+]
+
+# setup our print formatting for fixed output
+top_format = @ban_env.header + <<-EOS
+
+ID         Name                                    Birthday
+==========  ====================================== ==========
+EOS
+
+line_format = <<-EOS
+@<<<<<<<<<  @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<
+SPRIDEN_ID, FULL_NAME, SPBPERS_BIRTH_DATE
+EOS
+
+body_fmt = Format.new(top_format, line_format, @ban_env.footer)
+body_fmt.setPageLength(@ban_env.page_length)
+
+# The #conn attribute of @ban_env is the current database connection
+# READ THE DOCS: http://www.rubydoc.info/gems/ruby-oci8/OCI8
+cur = @ban_env.conn.parse(@sql)
+
+# The #params attribute of @ban_env is a Hash with the params key used above
+# which now have the value of the associated parameter passed from Banner
+cur.bind_param(':start_date', @ban_env.params[:start_date])
+cur.bind_param(':end_date', @ban_env.params[:end_date])
+
+cur.exec
+while (row = cur.fetch_hash) do
+  row['PAGE_NUMBER'] = body_fmt.pageNumber
+  row['FULL_NAME'] = "#{row['SPRIDEN_LAST_NAME']}, #{row['SPRIDEN_FIRST_NAME']}"
+  body_fmt.printFormatWithHash(row)
+end
+
+# The #log param is a file handle to your job's .log file (if running from INB)
+@ban_env.log.puts "Found #{cur.row_count} people."
+
+cur.close
+
+body_fmt.finishPageWithoutFF(binding)
+@ban_env.print_control_page
