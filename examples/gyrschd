@@ -12,7 +12,7 @@ require 'ostruct'
 # be careful running this in a real environment
 
 # This is a terrible way to send email, btw. Use something like Pony for real use.
-# Or if you're going to send a _lot_ of email, an asynchornous worker system
+# Or if you're going to send a _lot_ of email, an asynchronous worker system
 # like resque
 def send_email(to:, body:, opts: {})
   opts[:server]      ||= 'smtp.myschool.edu'
@@ -50,7 +50,7 @@ cur.exec(@ban_env.params[:term_code])
 while (row = cur.fetch_hash) do
   r = row.each_with_object({}) { |(k, v), m| m[k.downcase.to_sym] = v } #convert upcase column name to symbols
   @instructors[r[:pidm]] = r
-  @instructors[r[:pidm]]['sections'] = []
+  @instructors[r[:pidm]][:sections] = []
 end
 cur.close
 
@@ -59,7 +59,7 @@ cur = @ban_env.conn.parse(@sql_get_sections)
 cur.exec(@ban_env.params[:term_code])
 while (row = cur.fetch_hash) do
   r = row.each_with_object({}) { |(k, v), m| m[k.downcase.to_sym] = v }
-  @instructors[r[:pidm]]['sections'] << r
+  @instructors[r[:pidm]][:sections] << r
 end
 cur.close
 

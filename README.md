@@ -27,6 +27,7 @@ More options and configuration values are covered below.
 
 ## Installing a Job
 Setting up a Ruby program to run via jobsub / INB GJAPCTL is basically the same a compiled Pro*C:
+
 1. Create necessary job and security entries in Banner (GJBJOBS, GJBPDEF, etc) like a normal Pro*C job.
 2. Place Ruby program _without an extension_ ("gyrruby" in this example) in `$BANNER_HOME/general/exe` (or symlink it there from the appropriate "mods" directory, up to you).
 3. Set the executable bit on the program:`chmod +x $BANNER_HOME/general/exe/gyrruby`
@@ -59,4 +60,4 @@ end_date: 31-DEC-2015
 
 If not found, BannerJobsub will prompt for each parameter in turn. Multi-value parameters should be separated by a comma.
 
-**Output Formatting**: BannerJobsub suggests using [formatr](https://rubygems.org/gems/formatr) for tabular/fixed output formatting, as it provides "visual" layouts (perlform, essentially). Much easier than using `table(...)` based formatting. `BannerJobsub::Base#print_header` and `BannerJobsub::Base#print_footer` provide simple page header/footer outputs. More information can found at the [formatr docs](http://www.rubydoc.info/gems/formatr/1.10.1/FormatR/Format), the [perlform docs](http://perldoc.perl.org/perlform.html), and in the provided [output example](examples/gyroutp).
+**Output Formatting**: BannerJobsub suggests using [formatr](https://rubygems.org/gems/formatr) for tabular/fixed output formatting, as it provides "visual" layouts (perlform, essentially). Much easier than using `table(...)` based formatting. `BannerJobsub::Base#print_header` and `BannerJobsub::Base#print_footer` provide simple page header/footer outputs. More information can found at the [formatr docs](http://www.rubydoc.info/gems/formatr/1.10.1/FormatR/Format), the [perlform docs](http://perldoc.perl.org/perlform.html), and in the provided simple [output example](examples/gyrruby).

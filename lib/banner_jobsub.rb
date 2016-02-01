@@ -5,6 +5,23 @@ require 'yaml'
 require 'banner_jobsub/version'
 
 module BannerJobsub
+  ##
+  # Represents the current Banner environment the job is running in. At initilization,
+  # configuration values are loaded from three sources (in increasing order of precedence):
+  # - $BANNER_HOME/admin/banner_jobsub.yaml
+  # - ~/.banner_jobsub
+  # - +opts+ parameter of +new+
+  #
+  # Avaliable configuration values are:
+  # * +username+ : The username used to connect to Banner database. (Defaults to $BANUID)
+  # * +password+ : The password for +username+. (Defaults to $PSWD)
+  # * +instance+ : The tnsnames name to connect to. (Defaults to $ORACLE_SID)
+  # * +seed_one+ : The SEED1 value for the Banner instance.
+  # * +seed_three+ : The SEED3 value for the Banner instance.
+  # * +page_length+ : The default page length for FormatR output, configuration values are trumped by parameter #99 from jobsub. (Defaults to 55)
+  # * +footer+ : The default footer for FormatR output. (Defaults to '\f')
+  # * +header+ : The default header for FormatR output.
+  #
   class Base
     attr_reader :name, :title, :params, :conn, :header, :footer, :log, :page_length
 
