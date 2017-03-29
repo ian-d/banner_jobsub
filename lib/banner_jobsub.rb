@@ -105,7 +105,7 @@ module BannerJobsub
       while (r = cur.fetch_hash)
         p_num = r['GJBPRUN_NUMBER'].to_i
         if p_num == 99
-          @page_length = r['GJBPRUN_VALUE'].to_i
+          @page_length = r['GJBPRUN_VALUE'].nil? ? nil : r['GJBPRUN_VALUE'].to_i
           next
         end
         if p_num > params.count then fail "FATAL: GJBPRUN parameter number #{p_num} greater than passed parameter list." end
