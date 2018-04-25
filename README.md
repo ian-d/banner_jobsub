@@ -18,11 +18,20 @@ gem install banner_jobsub
  - [formatr](https://rubygems.org/gems/formatr) >= 1.10.1
 
 ## Configuration
-BannerJobsub expects standard/global configuration values configuration values to be stored in `$BANNER_HOME/admin/banner_jobsub.yaml`. Basic, minimum required values are your SEED1 and SEED3 values:
+BannerJobsub expects standard/global configuration values to be stored in `$BANNER_HOME/admin/banner_jobsub.yaml`. Basic, minimum required values are your SEED1 and SEED3 values:
 ```yaml
 seed_one: 111111111
 seed_three: 22222222
 ```
+
+**Banner 9 / bannerjsproxy** 
+If you are using Banner Job Submission Proxy (bannerjsproxy) with either Banner 8 INB or Banner 9 Admin Pages, you can enable bannerjsproxy compatibility using the (optional) configuration setting. Defaults to disabled.
+```yaml
+seed_one: 111111111
+seed_three: 22222222
+banjsproxy: enabled
+```
+
 More options and configuration values are covered below.
 
 ## Installing a Job
