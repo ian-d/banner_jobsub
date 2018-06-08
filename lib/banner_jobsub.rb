@@ -35,13 +35,20 @@ module BannerJobsub
         seed_three: nil,
         page_length: 55,
         footer: '\f',
-        header: ''
+        header: '',
+		banjsproxy: 'disabled'
       }
 
       configure_from_files
       configure_from_hash(opts)
       @config.each { |k, v| fail "Required configuration parameter \"#{k}\" is null." if v.nil? }
 
+      # If banner jobsub proxy is marked as enabled, shuffle ENV vars to match Ellucian shenanigans
+      if @config[:banjsproxy].downcase == 'enabled'
+        @config[:password] = ''
+        @config[:instance] = ENV['PSWD']
+      end	  
+	  
       set_db_connection
       set_role_security
 
